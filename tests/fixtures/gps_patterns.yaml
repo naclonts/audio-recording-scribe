@@ -1,0 +1,7 @@
+phrases:
+  - turn left
+  - turn right
+  - in 500 feet
+  - your destination is on the
+regexes:
+  - "\\b(?:in|after) \\d+ (?:feet|ft|yards|meters|meter|miles?|mi)\\b"

@@ -1,0 +1,17 @@
+[
+  {
+    "start": 0.0,
+    "end": 2.2,
+    "text": "I picked up coffee and read for a while."
+  },
+  {
+    "start": 2.2,
+    "end": 3.4,
+    "text": "Turn right in 500 feet."
+  },
+  {
+    "start": 3.4,
+    "end": 6.1,
+    "text": "I am heading to the park later."
+  }
+]

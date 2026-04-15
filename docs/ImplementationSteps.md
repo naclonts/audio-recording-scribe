@@ -2,6 +2,26 @@
 
 This document turns [Plan.md](/home/nathan/projects/audio-recording-scribe/docs/Plan.md) into an execution plan for a future parent agent that will coordinate subagents working in separate git worktrees.
 
+## Current Status
+
+As of 2026-04-14, the repository has completed Wave 0 and the MVP core integration pass:
+
+* shared scaffold is landed: packaging, config loading, logging, path helpers, CLI, and base tests
+* SQLite-backed state and idempotent job registration are implemented
+* polling ingestion and stable-file detection are implemented
+* ffmpeg normalization and import-safe `faster-whisper` transcription wrappers are implemented
+* heuristic GPS filtering and deterministic text/markdown/JSON outputs are implemented
+* the parent-owned pipeline wiring is in place for `scan-once`, `watch`, `process`, and `retry`
+* the repo currently passes the unit and integration suite with `25` tests
+
+Still pending from the longer plan:
+
+* deployment shell
+* Git output publishing
+* diarization, alignment, and speaker inference
+* updater/rollback logic
+* optional LLM adjudication and UI
+
 ## Implementation Goal
 
 Build the project in layers so that:
@@ -178,6 +198,8 @@ If the parent agent wants fewer workers, combine tracks `A+B`, `C+D`, and `F+H`.
 
 ### Step 1: Bootstrap the project
 
+Status: completed on 2026-04-14.
+
 Deliverables:
 
 * Python project metadata
@@ -195,6 +217,8 @@ Exit criteria:
 
 ### Step 2: Implement state and idempotency
 
+Status: completed on 2026-04-14.
+
 Deliverables:
 
 * SQLite schema for `jobs`, `artifacts`, and `segments`
@@ -211,6 +235,8 @@ Exit criteria:
 
 ### Step 3: Implement ingestion safeguards
 
+Status: completed on 2026-04-14.
+
 Deliverables:
 
 * inbox scanner
@@ -226,6 +252,8 @@ Exit criteria:
 
 ### Step 4: Implement normalization and transcription
 
+Status: completed on 2026-04-14 for the MVP path without diarization.
+
 Deliverables:
 
 * ffmpeg-based normalization to mono 16 kHz PCM WAV
@@ -240,6 +268,8 @@ Exit criteria:
 * transcript segments are persisted in metadata/state
 
 ### Step 5: Implement heuristic GPS filtering and clean transcript assembly
+
+Status: completed on 2026-04-14 for the heuristic MVP path.
 
 Deliverables:
 
@@ -257,6 +287,8 @@ Exit criteria:
 
 ### Step 6: Wire the MVP pipeline
 
+Status: completed on 2026-04-14 for local CLI execution and test-covered end-to-end flow.
+
 Deliverables:
 
 * job orchestrator that moves work through the planned statuses
@@ -271,6 +303,8 @@ Exit criteria:
 * metadata and artifacts are inspectable after completion
 
 ### Step 7: Add deployment shell
+
+Status: not started.
 
 Deliverables:
 
@@ -287,6 +321,8 @@ Exit criteria:
 
 ### Step 8: Add Git output publishing
 
+Status: not started.
+
 Deliverables:
 
 * output repo staging logic
@@ -301,6 +337,8 @@ Exit criteria:
 * tests cover idempotency and retry state
 
 ### Step 9: Add diarization, alignment, and speaker inference
+
+Status: not started.
 
 Deliverables:
 
@@ -317,6 +355,8 @@ Exit criteria:
 
 ### Step 10: Add safe source auto-update
 
+Status: not started.
+
 Deliverables:
 
 * updater service or timer
@@ -332,6 +372,8 @@ Exit criteria:
 * deployment logs show target commit, result, and rollback when applicable
 
 ### Step 11: Add optional LLM adjudication and UI
+
+Status: not started.
 
 Deliverables:
 
@@ -417,3 +459,37 @@ Before declaring success:
 * verify MVP acceptance criteria locally
 * verify deployment assumptions are reflected in config and docs
 * leave the repo in a state where later optional phases can be added without reshaping the package
+
+## Repo Snapshot
+
+The implemented repository shape now looks like:
+
+```text
+.
+  pyproject.toml
+  README.md
+  .env.example
+  config/
+    settings.yaml
+    gps_patterns.yaml
+    prompts/
+  src/
+    audio_recording_scribe/
+      cli.py
+      config.py
+      domain.py
+      logging.py
+      paths.py
+      audio/
+      classification/
+      ingestion/
+      output/
+      pipeline/
+      state/
+      transcription/
+      deployment/
+  tests/
+    fixtures/
+    unit/
+    integration/
+```

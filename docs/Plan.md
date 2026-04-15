@@ -1,5 +1,27 @@
 # Audio Diary Cleanup Pipeline Spec
 
+## Current Repository Status
+
+As of 2026-04-14, the repository implements the MVP without diarization, speaker inference, Git publishing, deployment shell, updater logic, or UI/LLM features.
+
+Implemented now:
+
+* polling inbox ingestion with stable-file detection
+* SQLite state for jobs and artifacts
+* ffmpeg normalization to mono 16 kHz PCM WAV
+* `faster-whisper` transcription wrapper
+* heuristic GPS filtering
+* deterministic text, markdown, and JSON provenance outputs
+* CLI commands for `scan-once`, `watch`, `process`, and `retry`
+
+Deferred from this spec:
+
+* diarization and alignment
+* speaker-based GPS inference
+* optional local LLM adjudication
+* Git publishing
+* deployment and updater concerns
+
 ## Goal
 
 Build a laptop-hosted code project that automatically ingests voice recordings from a synced folder, transcribes them, removes GPS/navigation speech from the transcript, and writes clean diary text outputs to a local output directory and optional private Git repository.
@@ -1503,4 +1525,3 @@ This project should be implemented as a local, VM-isolated, batch-oriented audio
 The cleaned transcript outputs should be committed to a separate private Git repository. The application source code should auto-update from its own source repository using an idle-aware, health-checked deployment flow with rollback to the last known-good version.
 
 The MVP should work without diarization or a local LLM. Those should remain enhancements rather than hard dependencies for baseline functionality.
-

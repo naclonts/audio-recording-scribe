@@ -1,0 +1,14 @@
+patterns:
+  - turn left
+  - turn right
+  - continue straight
+  - keep left
+  - keep right
+  - take the exit
+  - merge onto
+  - rerouting
+  - route recalculated
+  - you have arrived
+  - your destination is on the
+  - in 500 feet
+

@@ -1,0 +1,44 @@
+directories:
+  inbox: data/inbox
+  processing: data/processing
+  archive: data/archive
+  failed: data/failed
+  normalized: data/normalized
+  outputs: data/outputs
+  metadata: data/metadata
+  logs: data/logs
+  state_db: data/state/jobs.sqlite3
+
+ingestion:
+  polling_interval_seconds: 30
+  stable_file_seconds: 15
+  supported_extensions:
+    - .m4a
+    - .mp3
+    - .mp4
+    - .wav
+    - .aac
+
+audio:
+  ffmpeg_binary: ffmpeg
+  ffprobe_binary: ffprobe
+  target_sample_rate_hz: 16000
+  target_channels: 1
+  pcm_codec: pcm_s16le
+
+transcription:
+  provider: faster-whisper
+  model_size: small
+  device: auto
+  compute_type: auto
+  vad_filter: true
+  language: null
+
+classification:
+  gps_patterns_path: config/gps_patterns.yaml
+  uncertain_max_words: 12
+
+logging:
+  level: INFO
+  structured: false
+

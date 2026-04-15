@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "audio-recording-scribe"
+version = "0.1.0"
+description = "Local-first audio diary cleanup pipeline."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "OpenAI Codex" }]
+dependencies = [
+  "PyYAML==6.0.2",
+  "pydantic==2.11.3",
+]
+
+[project.optional-dependencies]
+asr = [
+  "faster-whisper==1.1.1",
+]
+diarization = [
+  "pyannote.audio==3.3.2",
+]
+llm = [
+  "ollama==0.4.8",
+]
+ui = [
+  "streamlit==1.44.1",
+]
+dev = [
+  "pytest==8.3.5",
+  "pytest-cov==6.1.1",
+  "ruff==0.11.6",
+]
+
+[project.scripts]
+audio-recording-scribe = "audio_recording_scribe.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/audio_recording_scribe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
