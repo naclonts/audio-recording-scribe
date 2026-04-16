@@ -142,3 +142,71 @@ def test_download_google_drive_file_rejects_non_public_html_response(
             tmp_path / "private.m4a",
             opener=opener,
         )
+
+
+def test_list_google_drive_folder_files_extracts_public_file_links(monkeypatch: pytest.MonkeyPatch) -> None:
+    folder_url = (
+        "https://drive.google.com/drive/folders/1FolderAbCdEfGhIjKlMnOpQr?resourcekey=0-folder_key"
+    )
+    folder_ref = drive.parse_google_drive_url(folder_url)
+    assert isinstance(folder_ref, drive.GoogleDriveFolderRef)
+
+    request = drive.build_google_drive_folder_request(folder_ref)
+    opener = _FakeOpener(
+        {
+            request.url: _FakeResponse(
+                request.url,
+                "text/html",
+                b"""
+                <html>
+                  <body>
+                    <a href="/file/d/1AudioFileAbCdEfGhIjKl/view?resourcekey=0-audio_key"
+                       title="clip-one.m4a">clip-one.m4a</a>
+                    <a href="https://drive.google.com/file/d/1SecondFileAbCdEfGhIj/view"
+                       aria-label="clip-two.wav"></a>
+                    <a href="/drive/folders/1NestedFolderAbCdEfGhIj/view">Nested folder</a>
+                  </body>
+                </html>
+                """,
+            )
+        }
+    )
+
+    file_refs = drive.list_google_drive_folder_files(folder_ref, opener=opener)
+
+    assert opener.requested_urls == [request.url]
+    assert file_refs == (
+        drive.GoogleDriveFileRef(
+            file_id="1AudioFileAbCdEfGhIjKl",
+            resource_key="0-audio_key",
+            original_url="https://drive.google.com/file/d/1AudioFileAbCdEfGhIjKl/view?resourcekey=0-audio_key",
+            file_name="clip-one.m4a",
+        ),
+        drive.GoogleDriveFileRef(
+            file_id="1SecondFileAbCdEfGhIj",
+            resource_key=None,
+            original_url="https://drive.google.com/file/d/1SecondFileAbCdEfGhIj/view",
+            file_name="clip-two.wav",
+        ),
+    )
+
+
+def test_list_google_drive_folder_files_rejects_private_folder(monkeypatch: pytest.MonkeyPatch) -> None:
+    folder_ref = drive.parse_google_drive_url(
+        "https://drive.google.com/drive/folders/1FolderAbCdEfGhIjKlMnOpQr"
+    )
+    assert isinstance(folder_ref, drive.GoogleDriveFolderRef)
+
+    request = drive.build_google_drive_folder_request(folder_ref)
+    opener = _FakeOpener(
+        {
+            request.url: _FakeResponse(
+                request.url,
+                "text/html",
+                b"<html><body>Sign in to continue</body></html>",
+            )
+        }
+    )
+
+    with pytest.raises(drive.GoogleDriveAccessError):
+        drive.list_google_drive_folder_files(folder_ref, opener=opener)
