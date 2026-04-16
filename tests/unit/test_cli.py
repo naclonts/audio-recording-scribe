@@ -7,6 +7,7 @@ import pytest
 from audio_recording_scribe.cli import main
 from audio_recording_scribe.transcription.runtime_checks import (
     BinaryRuntimeCheck,
+    ModelRuntimeCheck,
     ModuleRuntimeCheck,
     TranscriptionRuntimeReadiness,
 )
@@ -46,7 +47,7 @@ def test_check_runtime_reports_non_ready_environment(
 ) -> None:
     monkeypatch.setattr(
         "audio_recording_scribe.cli.probe_transcription_runtime",
-        lambda: TranscriptionRuntimeReadiness(
+        lambda _transcription_config: TranscriptionRuntimeReadiness(
             ready=False,
             ffmpeg=BinaryRuntimeCheck(name="ffmpeg", available=True, resolved_path="/usr/bin/ffmpeg"),
             ffprobe=BinaryRuntimeCheck(name="ffprobe", available=True, resolved_path="/usr/bin/ffprobe"),
@@ -54,6 +55,14 @@ def test_check_runtime_reports_non_ready_environment(
                 module_name="faster_whisper",
                 available=False,
                 detail="faster_whisper is not installed in the active Python environment.",
+            ),
+            model=ModelRuntimeCheck(
+                configured_model="small",
+                available=True,
+                source="downloadable-model",
+                cache_dir="/tmp/model-cache",
+                will_download=True,
+                detail="Configured Whisper model 'small' is not a local path; it will be downloaded on first transcription run.",
             ),
             hints=("Install the ASR runtime in this environment.",),
         ),

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Sequence
 
 from audio_recording_scribe import __version__
-from audio_recording_scribe.config import infer_base_dir, load_config
+from audio_recording_scribe.config import TranscriptionConfig, infer_base_dir, load_config
 from audio_recording_scribe.domain import JobStatus
 from audio_recording_scribe.ingestion.drive import (
     GoogleDriveDownloadError,
@@ -67,6 +67,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     base_dir = infer_base_dir(args.config)
     config = load_config(args.config, base_dir=base_dir)
+    if args.command == "check-runtime":
+        return _check_runtime(config.transcription)
+
     paths = AppPaths(
         root=base_dir,
         inbox=config.directories.inbox,
@@ -82,9 +85,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     configure_logging(config.logging, log_file=paths.app_log_file)
     service = PipelineService(config=config, paths=paths)
-
-    if args.command == "check-runtime":
-        return _check_runtime()
     if args.command == "scan-once":
         return service.scan_once()
     if args.command == "watch":
@@ -99,8 +99,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 2
 
 
-def _check_runtime() -> int:
-    readiness = probe_transcription_runtime()
+def _check_runtime(transcription_config: TranscriptionConfig) -> int:
+    readiness = probe_transcription_runtime(transcription_config)
     print(json.dumps(asdict(readiness), indent=2, sort_keys=True))
     return 0 if readiness.ready else 1
 

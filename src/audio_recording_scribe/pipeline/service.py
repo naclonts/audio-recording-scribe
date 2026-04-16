@@ -198,6 +198,7 @@ class PipelineService:
         if self._transcriber is None:
             self._transcriber = FasterWhisperTranscriber(
                 model_size=self.config.transcription.model_size,
+                model_cache_dir=self.config.transcription.model_cache_dir,
                 device=self.config.transcription.device,
                 compute_type=self.config.transcription.compute_type,
                 language=self.config.transcription.language,
