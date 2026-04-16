@@ -13,9 +13,12 @@ from audio_recording_scribe.config import infer_base_dir, load_config
 from audio_recording_scribe.domain import JobStatus
 from audio_recording_scribe.ingestion.drive import (
     GoogleDriveDownloadError,
+    GoogleDriveFileRef,
+    GoogleDriveFolderRef,
     UnsupportedGoogleDriveLinkError,
     build_google_drive_download_request,
     download_google_drive_file,
+    list_google_drive_folder_files,
     parse_google_drive_url,
 )
 from audio_recording_scribe.logging import configure_logging
@@ -44,9 +47,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     gdrive_parser = subparsers.add_parser(
         "process-gdrive",
-        help="Download a public Google Drive file and process it once.",
+        help="Download a public Google Drive file or folder and process it once.",
     )
-    gdrive_parser.add_argument("url", help="Public Google Drive file URL.")
+    gdrive_parser.add_argument("url", help="Public Google Drive file or folder URL.")
 
     subparsers.add_parser(
         "check-runtime",
@@ -106,26 +109,51 @@ def _process_google_drive(service: PipelineService, url: str) -> int:
     service.paths.ensure_runtime_directories()
     service.orchestrator.initialize()
     try:
-        file_ref = parse_google_drive_url(url)
-        source_path = service.paths.processing / "gdrive" / file_ref.file_id
-        existing = service.state_store.get_job_by_source_path(source_path)
-        if existing is not None and existing.status == JobStatus.COMPLETED:
-            service.logger.info(
-                "google drive file already processed; skipping download: job_id=%s file_id=%s",
-                existing.id,
-                file_ref.file_id,
-            )
-            return 0
+        ref = parse_google_drive_url(url)
+        if isinstance(ref, GoogleDriveFileRef):
+            return _process_google_drive_file(service, ref, source_url=url)
 
-        request = build_google_drive_download_request(file_ref)
-        result = download_google_drive_file(request, source_path)
-        if result.bytes_written <= 0:
-            service.logger.error("downloaded zero bytes from Google Drive: %s", url)
-            return 1
-        return service.process(source=result.destination)
+        file_refs = list_google_drive_folder_files(ref)
+        failures = 0
+        for file_ref in file_refs:
+            failures += _process_google_drive_file(service, file_ref, source_url=url)
+        return 1 if failures else 0
     except (GoogleDriveDownloadError, UnsupportedGoogleDriveLinkError) as exc:
         service.logger.error("google drive processing failed: %s", exc)
         return 1
+
+
+def _process_google_drive_file(
+    service: PipelineService,
+    file_ref: GoogleDriveFileRef,
+    *,
+    source_url: str,
+) -> int:
+    source_path = _google_drive_source_path(service, file_ref)
+    existing = service.state_store.get_job_by_source_path(source_path)
+    if existing is not None and existing.status == JobStatus.COMPLETED:
+        service.logger.info(
+            "google drive file already processed; skipping download: job_id=%s file_id=%s",
+            existing.id,
+            file_ref.file_id,
+        )
+        return 0
+
+    request = build_google_drive_download_request(file_ref)
+    result = download_google_drive_file(request, source_path)
+    if result.bytes_written <= 0:
+        service.logger.error("downloaded zero bytes from Google Drive: %s", source_url)
+        return 1
+    return service.process(source=result.destination)
+
+
+def _google_drive_source_path(service: PipelineService, file_ref: GoogleDriveFileRef) -> Path:
+    suffix = ""
+    if file_ref.file_name:
+        candidate_suffix = Path(file_ref.file_name).suffix
+        if candidate_suffix and candidate_suffix[1:].isalnum():
+            suffix = candidate_suffix.lower()
+    return service.paths.processing / "gdrive" / f"{file_ref.file_id}{suffix}"
 
 
 if __name__ == "__main__":
