@@ -13,6 +13,7 @@ from audio_recording_scribe.classification import HeuristicLabel, classify_segme
 from audio_recording_scribe.config import AppConfig
 from audio_recording_scribe.domain import ArtifactType, JobStatus
 from audio_recording_scribe.ingestion import InboxScanner, StableFileDetector
+from audio_recording_scribe.ingestion.source_lifecycle import SourceLifecycleManager
 from audio_recording_scribe.logging import get_logger
 from audio_recording_scribe.output import deterministic_output_stem, write_clean_transcript
 from audio_recording_scribe.paths import AppPaths
@@ -44,6 +45,7 @@ class PipelineService:
             state_store=self.state_store,
             scanner=self.scanner,
         )
+        self.source_lifecycle = SourceLifecycleManager(paths=self.paths, state_store=self.state_store)
         self._transcriber: FasterWhisperTranscriber | None = None
 
     def scan_once(self) -> int:
@@ -113,8 +115,9 @@ class PipelineService:
         try:
             self.logger.info("processing job_id=%s source=%s", job.id, job.source_path)
             current_job = self._transition(current_job, JobStatus.NORMALIZING)
+            active_source_path = self.source_lifecycle.stage_source_for_processing(current_job)
             normalized = normalize_audio(
-                current_job.source_path,
+                active_source_path,
                 self.paths.normalized,
                 ffmpeg_binary=self.config.audio.ffmpeg_binary,
                 sample_rate_hz=self.config.audio.target_sample_rate_hz,
@@ -170,10 +173,20 @@ class PipelineService:
                 ArtifactType.METADATA_JSON,
                 written.provenance_path,
             )
+            self.source_lifecycle.archive_source(current_job)
             self.state_store.transition_job(current_job.id, JobStatus.COMPLETED)
             self.logger.info("job completed: job_id=%s", current_job.id)
             return True
         except Exception as exc:
+            try:
+                failed_source_path = self.source_lifecycle.move_source_to_failed(current_job)
+                self.logger.info(
+                    "moved failed source for job_id=%s to %s",
+                    current_job.id,
+                    failed_source_path,
+                )
+            except Exception:
+                self.logger.exception("unable to move failed source for job_id=%s", current_job.id)
             self.state_store.mark_failed(job.id, str(exc))
             self.logger.exception("job failed: job_id=%s", job.id)
             return False

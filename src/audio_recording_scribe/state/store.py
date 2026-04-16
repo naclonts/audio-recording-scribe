@@ -207,6 +207,40 @@ class SQLiteJobStore:
             raise RuntimeError("artifact insert unexpectedly missing")
         return _artifact_from_row(row)
 
+    def list_artifacts(
+        self,
+        job_id: str,
+        *,
+        artifact_type: ArtifactType | None = None,
+    ) -> list[ArtifactRecord]:
+        query = "SELECT * FROM artifacts WHERE job_id = ?"
+        params: list[object] = [job_id]
+        if artifact_type is not None:
+            query += " AND artifact_type = ?"
+            params.append(artifact_type.value)
+        query += " ORDER BY rowid ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [_artifact_from_row(row) for row in rows]
+
+    def get_latest_artifact(
+        self,
+        job_id: str,
+        artifact_type: ArtifactType,
+    ) -> ArtifactRecord | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT *
+                FROM artifacts
+                WHERE job_id = ? AND artifact_type = ?
+                ORDER BY rowid DESC
+                LIMIT 1
+                """,
+                (job_id, artifact_type.value),
+            ).fetchone()
+        return None if row is None else _artifact_from_row(row)
+
     def close(self) -> None:
         """Kept for API symmetry with future long-lived implementations."""
 
