@@ -47,16 +47,14 @@ The CLI runs the current MVP pipeline:
 
 ## Process A Google Drive Folder
 
-Run a public Google Drive folder through the pipeline and write the cleaned notes to a specific output directory:
+Run a public Google Drive folder through the pipeline:
 
 ```bash
-AUDIO_RECORDING_SCRIBE_DIRECTORIES__OUTPUTS=/absolute/path/to/notes \
-AUDIO_RECORDING_SCRIBE_TRANSCRIPTION__MODEL_CACHE_DIR=/absolute/path/to/model-cache \
 uv run python -m audio_recording_scribe.cli process-gdrive \
   'https://drive.google.com/drive/folders/<folder-id>?resourcekey=<optional-resource-key>'
 ```
 
-Notes:
+Optional overrides:
 
 - `AUDIO_RECORDING_SCRIBE_DIRECTORIES__OUTPUTS` controls where the cleaned `.txt`, `.md`, and provenance `.json` files are written.
 - `AUDIO_RECORDING_SCRIBE_TRANSCRIPTION__MODEL_CACHE_DIR` controls where named Whisper models such as `small` are cached. If you keep the default model name, the first real transcription run will download it automatically.
