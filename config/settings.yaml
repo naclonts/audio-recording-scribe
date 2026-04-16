@@ -29,6 +29,7 @@ audio:
 transcription:
   provider: faster-whisper
   model_size: small
+  model_cache_dir: data/models/faster-whisper
   device: auto
   compute_type: auto
   vad_filter: true
@@ -41,4 +42,3 @@ classification:
 logging:
   level: INFO
   structured: false
-

@@ -232,6 +232,7 @@ dependencies = [
 [package.optional-dependencies]
 asr = [
     { name = "faster-whisper" },
+    { name = "requests" },
 ]
 dev = [
     { name = "pytest" },
@@ -257,6 +258,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = "==8.3.5" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = "==6.1.1" },
     { name = "pyyaml", specifier = "==6.0.2" },
+    { name = "requests", marker = "extra == 'asr'", specifier = ">=2.32.0,<3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.11.6" },
     { name = "streamlit", marker = "extra == 'ui'", specifier = "==1.44.1" },
 ]

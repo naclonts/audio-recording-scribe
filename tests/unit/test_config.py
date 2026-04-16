@@ -15,6 +15,9 @@ def test_load_config_resolves_paths_relative_to_base_dir(tmp_path: Path) -> None
                 "directories:",
                 "  inbox: data/inbox",
                 "  state_db: data/state/jobs.sqlite3",
+                "transcription:",
+                "  model_size: ./models/local-whisper",
+                "  model_cache_dir: data/model-cache",
                 "classification:",
                 "  gps_patterns_path: config/gps_patterns.yaml",
             ]
@@ -26,6 +29,8 @@ def test_load_config_resolves_paths_relative_to_base_dir(tmp_path: Path) -> None
 
     assert config.directories.inbox == tmp_path / "data" / "inbox"
     assert config.directories.state_db == tmp_path / "data" / "state" / "jobs.sqlite3"
+    assert config.transcription.model_size == str(tmp_path / "models" / "local-whisper")
+    assert config.transcription.model_cache_dir == tmp_path / "data" / "model-cache"
     assert config.classification.gps_patterns_path == tmp_path / "config" / "gps_patterns.yaml"
 
 
@@ -46,4 +51,3 @@ def test_load_config_applies_env_overrides(tmp_path: Path) -> None:
 
     assert config.ingestion.polling_interval_seconds == 45
     assert config.logging.level == "DEBUG"
-

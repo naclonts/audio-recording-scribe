@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import importlib
+import os
 from pathlib import Path
 from typing import Any
 
@@ -40,12 +41,14 @@ class FasterWhisperTranscriber:
         self,
         *,
         model_size: str = "small",
+        model_cache_dir: Path | None = None,
         device: str = "auto",
         compute_type: str = "auto",
         language: str | None = None,
         vad_filter: bool = True,
     ) -> None:
         self.model_size = model_size
+        self.model_cache_dir = model_cache_dir
         self.device = device
         self.compute_type = compute_type
         self.language = language
@@ -88,9 +91,32 @@ class FasterWhisperTranscriber:
                 "faster-whisper is not installed; install the 'asr' extra to enable transcription."
             ) from exc
         model_cls = getattr(module, "WhisperModel")
-        self._model = model_cls(self.model_size, device=self.device, compute_type=self.compute_type)
+        model_reference = self._resolve_model_reference()
+        model_kwargs = {
+            "device": self.device,
+            "compute_type": self.compute_type,
+        }
+        if self.model_cache_dir is not None and not _looks_like_path_reference(model_reference):
+            try:
+                self.model_cache_dir.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                raise TranscriptionDependencyUnavailable(
+                    f"Configured Whisper model cache directory is not usable: {self.model_cache_dir}"
+                ) from exc
+            model_kwargs["download_root"] = str(self.model_cache_dir)
+        self._model = model_cls(model_reference, **model_kwargs)
         self._backend_checked = True
         return self._model
+
+    def _resolve_model_reference(self) -> str:
+        if not _looks_like_path_reference(self.model_size):
+            return self.model_size
+        model_path = Path(self.model_size).expanduser()
+        if not model_path.exists():
+            raise TranscriptionDependencyUnavailable(
+                f"Configured Whisper model path does not exist: {model_path}"
+            )
+        return str(model_path)
 
 
 def _coerce_segment(segment: Any) -> TranscriptSegment:
@@ -109,3 +135,7 @@ def _optional_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _looks_like_path_reference(value: str) -> bool:
+    return value.startswith(("~", ".", "/")) or os.sep in value or (os.altsep is not None and os.altsep in value)

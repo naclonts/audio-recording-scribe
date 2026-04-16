@@ -60,6 +60,7 @@ class TranscriptionConfig(BaseModel):
 
     provider: str = "faster-whisper"
     model_size: str = "small"
+    model_cache_dir: Path = Path("data/models/faster-whisper")
     device: str = "auto"
     compute_type: str = "auto"
     vad_filter: bool = True
@@ -100,7 +101,19 @@ class AppConfig(BaseModel):
         classification = self.classification.model_copy(
             update={"gps_patterns_path": _resolve_path(self.classification.gps_patterns_path, base_dir)}
         )
-        return self.model_copy(update={"directories": directories, "classification": classification})
+        transcription = self.transcription.model_copy(
+            update={
+                "model_size": _resolve_model_reference(self.transcription.model_size, base_dir),
+                "model_cache_dir": _resolve_path(self.transcription.model_cache_dir, base_dir),
+            }
+        )
+        return self.model_copy(
+            update={
+                "directories": directories,
+                "transcription": transcription,
+                "classification": classification,
+            }
+        )
 
 
 def default_config_path(root: Path | None = None) -> Path:
@@ -160,6 +173,17 @@ def _resolve_config_path(
 
 def _resolve_path(path_value: Path, base_dir: Path) -> Path:
     return path_value if path_value.is_absolute() else (base_dir / path_value).resolve()
+
+
+def _resolve_model_reference(model_reference: str, base_dir: Path) -> str:
+    candidate = Path(model_reference).expanduser()
+    if not _looks_like_path_reference(model_reference):
+        return model_reference
+    return str(candidate if candidate.is_absolute() else (base_dir / candidate).resolve())
+
+
+def _looks_like_path_reference(value: str) -> bool:
+    return value.startswith(("~", ".", "/")) or os.sep in value or (os.altsep is not None and os.altsep in value)
 
 
 def _env_overrides(env_map: Mapping[str, str]) -> dict[str, Any]:
